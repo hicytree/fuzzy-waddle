@@ -23,34 +23,16 @@ token = spotipy.oauth2.SpotifyClientCredentials(client_id=_CLIENT_ID, client_sec
 cache_token = token.get_access_token()
 sp = spotipy.Spotify(cache_token)
  
-playlist_list = []
-playlist_list_names = [] #first name
- 
-# accesses csv file with form responses and adds these values to relevant lists
-# cur_row = 0
-# with open('playlist.csv', newline='') as csvfile:
-#     reader = csv.reader(csvfile)
-#     for row in reader:
-#         if row[3] == '':
-#             break
- 
-#         if cur_row == 0:
-#             cur_row += 1
-#             continue
- 
-#         playlist_list.append(sp.playlist(row[3][row[3].rindex("/") + 1:]))
-#         playlist_list_names.append(row[1][:row[1].index(" ") + 2])
-#         playlist_list_roles.append(row[2])
- 
-#         cur_row += 1
+genre_songs = []
+genre_names = []
+
 f = open('songsbygenre.json')
 genres = json.load(f)
 for genre in genres.keys():
-    playlist_list.append(genres[genre])
-    playlist_list_names.append(genre)
+    genre_songs.append(genres[genre])
+    genre_names.append(genre)
 f.close()
- 
- 
+
 # creates clusters with all the data and algorithms that come with it
 class Spotify_Clustering:
  
@@ -61,40 +43,19 @@ class Spotify_Clustering:
         self.cluster_name = {}
  
     # calculates the pca values of each song in the playlist and returns the list of pca values
-    def pca_calculation(self, playlist):
+    def pca_calculation(self, genre):
         cur_num = 1
-        list_dicts = []
-        unwanted_vars = ["type", "id", "uri", "analysis_url", "track_href"]
- 
-        for tuple in playlist:
-            audio_features = sp.audio_features(tuple[1][tuple[1].rindex("/")+1:])
-            print(cur_num, tuple[0])
-            cur_num += 1
-            for j in range(len(unwanted_vars)):
-                audio_features[0].pop(unwanted_vars[j])
+        song_features = []
 
-            list_dicts.append(audio_features[0])
+        for song in genre:
+            audio_features = song[list(song.keys())[0]][0]
+            print(cur_num, list(song.keys())[0])
+            cur_num += 1
+
+            song_features.append(audio_features)
         print()
  
-        # cur_track = playlist["tracks"]
-        # list_dicts = []
-        # unwanted_vars = ["type", "id", "uri", "analysis_url", "track_href"]
- 
-        # print("\n\n\n")
-        # while cur_track:
-        #     for i in range(len(cur_track["items"])):
-        #         audio_features = sp.audio_features(playlist["tracks"]["items"][i]["track"]["id"])
-        #         print(cur_num, cur_track["items"][i]["track"]["name"])
-        #         cur_num += 1
- 
-        #         for j in range(len(unwanted_vars)):
-        #             audio_features[0].pop(unwanted_vars[j])
- 
-        #         list_dicts.append(audio_features[0])
- 
-        #     cur_track = sp.next(cur_track)
- 
-        df = pd.DataFrame.from_dict(list_dicts)
+        df = pd.DataFrame.from_dict(song_features)
  
         scaler = StandardScaler()
         scaler.fit(df)
@@ -158,10 +119,10 @@ class Spotify_Clustering:
  
     # takes in the number of clusters and graphs the geometrical medians on the 3-D figure, coloring them based on the cluster they belong to
     def graph_clusters(self, num_cluster):
-        fig = plt.figure("SPIS-y Music")
+        fig = plt.figure("Genre Trends")
  
         ax = fig.add_subplot(111, projection='3d')
-        ax.set_title("Music Preference by Cluster")
+        ax.set_title("Trends by Genre")
         ax.set_xlabel('Principle Component 1')
         ax.set_ylabel('Principle Component 2')
         ax.set_zlabel('Principle Component 3')
@@ -181,21 +142,21 @@ class Spotify_Clustering:
             x_geomeds.append(coor[0])
             y_geomeds.append(coor[1])
             z_geomeds.append(coor[2])
-            ax.text(coor[0], coor[1], coor[2], playlist_list_names[i], fontdict=font, size=5, zorder=1, color='black')
+            ax.text(coor[0], coor[1], coor[2], list(genres.keys())[i], fontdict=font, size=5, zorder=1, color='black')
             i += 1
  
         y_predicted = self.km[num_cluster - 1].fit_predict(self.df_geomeds)
         self.df_geomeds['cluster'] = y_predicted
  
-        for i in range(len(playlist_list_names)):
-            self.cluster_name.update({playlist_list_names[i]: y_predicted[i]})
+        for i in range(len(genres)):
+            self.cluster_name.update({list(genres.keys())[i]: y_predicted[i]})
  
         for i in range(num_cluster):
             rand_color = '#%02x%02x%02x' % (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
             cluster = self.df_geomeds[self.df_geomeds.cluster == i]
  
             ax.scatter3D(cluster['x_coor'], cluster['y_coor'], cluster['z_coor'], color=rand_color, alpha=1.0)
- 
+    '''
     # graph thes geometric medians and the name of the point on a figure as black dots
     def graph_geo_med(self):
         fig = plt.figure()
@@ -216,26 +177,24 @@ class Spotify_Clustering:
             ax.text(coor[0], coor[1], coor[2], playlist_list_names[i], fontdict=font, size=5, zorder=1, color='black')
             ax.scatter3D(coor[0], coor[1], coor[2], color='black', alpha=1.0)
             i += 1
- 
+    
     # graphs the pca of each song in one playlist as red dots and the geometric median of the whole playlist as a black dot
     def graph_pca(self, pca):
-        fig = plt.figure()
+        fig = plt.figure("Genre Trends")
  
         ax = fig.add_subplot(111, projection='3d')
-        ax.set_title("Music Preference of One SPIS Member")
+        ax.set_title("Groupings by Genre")
         ax.set_xlabel('Principle Component 1')
         ax.set_ylabel('Principle Component 2')
         ax.set_zlabel('Principle Component 3')
  
         for coor in pca:
             ax.scatter3D(coor[0], coor[1], coor[2], color='red', alpha=1.0)
-            x, y, z = self.find_geo_med(pca)
-            ax.scatter3D(x, y, z, color='black', alpha=1.0)
- 
+    '''
     # finds the optimal number of clusters for the data by calculating the elbow of the graph of clusters-variance
     def find_num_clusters(self):
         sse = []
-        k_rng = range(1, len(playlist_list))
+        k_rng = range(1, len(genres))
  
         for i in range(len(k_rng)):
             self.km.append(KMeans(n_clusters=k_rng[i]))
@@ -265,7 +224,7 @@ class Spotify_Runner:
  
         self.num_runs = num_runs
         self.center_points = []
-        self.first_pca = None
+        self.first_pca = []
  
     # creates a num_runs number of cluster arrangements and sorts them to find the most efficient arrangement and graphing that arrangement
     def spot_creation(self):
@@ -273,34 +232,38 @@ class Spotify_Runner:
             self.spot_list.append(Spotify_Clustering())
  
             if i == 0:
-                for playlist in playlist_list[:4]:
-                    pca = self.spot_list[i].pca_calculation(playlist)
-                    if playlist_list.index(playlist) == 0:
+                for genre in genres:
+                    pca = self.spot_list[i].pca_calculation(genres[genre])
+                    if len(self.first_pca) == 0:
                         self.first_pca = pca
                     x, y, z = self.spot_list[i].find_geo_med(pca)
                     self.center_points.append([x, y, z])
- 
+            
             self.spot_list[i].center_points = self.center_points
             self.spot_list[i].df_geomeds = df(self.center_points, columns=['x_coor', 'y_coor', 'z_coor'])
- 
+
             if i == 0:
                 list_num_cluster = []
                 for j in range(25):
                     list_num_cluster.append(self.spot_list[0].find_num_clusters())
- 
+
                 self.best_num_cluster = statistics.mode(list_num_cluster)
- 
+
             self.spot_list[i].find_num_clusters()
  
             self.inertias.append(self.spot_list[i].km[self.best_num_cluster - 1].inertia_)
             if min(self.inertias) == self.spot_list[i].km[self.best_num_cluster - 1].inertia_:
                 self.min_inertia_spot = i
- 
-        self.spot_list[self.min_inertia_spot].graph_pca(self.first_pca)
-        self.spot_list[self.min_inertia_spot].graph_geo_med()
-        self.spot_list[self.min_inertia_spot].graph_roles()
+
+            print("iteration %s" % i)
+        
+        #genre_graphing = Spotify_Clustering()
+        #self.first_pca = genre_graphing.pca_calculation(genres[genre])
+        #genre_graphing.graph_pca(self.first_pca)
+        # self.spot_list[self.min_inertia_spot].graph_geo_med()
+        # self.spot_list[self.min_inertia_spot].graph_roles()
         self.spot_list[self.min_inertia_spot].graph_clusters(self.best_num_cluster)
- 
+        
         print("\n\n\n")
         for i in range(self.best_num_cluster):
             list_names = [key for key, value in self.spot_list[self.min_inertia_spot].cluster_name.items() if
@@ -309,8 +272,8 @@ class Spotify_Runner:
             for j in range(len(list_names) - 1):
                 print(str(list_names[j]), end=', ')
             print(list_names[len(list_names) - 1])
- 
-runner = Spotify_Runner(100)
+        
+runner = Spotify_Runner(10)
 runner.spot_creation()
 print("\n\n\n")
  
