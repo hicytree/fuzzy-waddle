@@ -82,37 +82,30 @@ for i in range(2021, 2022): #1946-2021
         # print()
         # print('SONG NAME' + song_name)
  
-        # currently only takes the first artist
         artist_name_line = artist_name_line.replace('<', '>')
         artists = re.split(' featuring | and | or | with ', artist_name_line)
         print('ARTISTS ARR')
         print(artists)
+        artist_name = ''
         for artist in artists:
-            artist_name = ''
-            # artist_split = artist.split('>')
-            while i < len(artist):
-                print('INDIVIDUAL ARTIST')
-                print(artist[i])
-                # for artists with no link and no tags
-                if len(artist[i]) == 1:
-                    if (artist_name != ''):
-                        artist_name += ', '
-                    artist_name += artist[i][0]
-                # for artists with no link
-                elif len(artist[i]) <= 5:
-                    if (artist_name != ''):
-                        artist_name += ', '
-                    artist_name += artist[i][2]
-                # for artists with links
-                else:
-                    if (artist_name != ''):
-                        artist_name += ', '
-                    artist_name += artist[i][4]
-                i += 1
-
+            artist_split = artist.split('>')
+            if len(artist_split) == 1:
+                if (artist_name != ''):
+                    artist_name += ', '
+                artist_name += artist_split[0]
+            # for artists with no link
+            elif len(artist_split) <= 5:
+                if (artist_name != ''):
+                    artist_name += ', '
+                artist_name += artist_split[2]
+            # for artists with links
+            else:
+                if (artist_name != ''):
+                    artist_name += ', '
+                artist_name += artist_split[4]
         
-        print()
-        print('ARTIST NAME' + artist_name)
+        # print()
+        # print('ARTIST NAME' + artist_name)
 
         song_name_line = stream.readline()
         # count += 1
