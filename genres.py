@@ -49,7 +49,7 @@ for genre in genres[:3]:
 # parse top 100 hits from Wikipedia Billboard Year End Top Hits
 top100_songs = {}
 count = 1
-for i in range(2021, 2022): #1946-2021
+for i in range(1966, 1972): #1946-2021
     top100_songs[i] = []
     #grep -A 1 '<td>\"<a href=\"/wiki/'
     #wget -qO- 'https://en.wikipedia.org/wiki/Billboard_Year-End_Hot_100_singles_of_1946' | grep -A 1 '<tr>'
@@ -84,25 +84,28 @@ for i in range(2021, 2022): #1946-2021
  
         artist_name_line = artist_name_line.replace('<', '>')
         artists = re.split(' featuring | and | or | with ', artist_name_line)
-        print('ARTISTS ARR')
-        print(artists)
+        # print('ARTISTS ARR')
+        # print(artists)
         artist_name = ''
-        for artist in artists:
-            artist_split = artist.split('>')
-            if len(artist_split) == 1:
-                if (artist_name != ''):
-                    artist_name += ', '
-                artist_name += artist_split[0]
-            # for artists with no link
-            elif len(artist_split) <= 5:
-                if (artist_name != ''):
-                    artist_name += ', '
-                artist_name += artist_split[2]
-            # for artists with links
-            else:
-                if (artist_name != ''):
-                    artist_name += ', '
-                artist_name += artist_split[4]
+        try:
+            for artist in artists:
+                artist_split = artist.split('>')
+                if len(artist_split) == 1:
+                    if (artist_name != ''):
+                        artist_name += ', '
+                    artist_name += artist_split[0]
+                # for artists with no link
+                elif len(artist_split) <= 5:
+                    if (artist_name != ''):
+                        artist_name += ', '
+                    artist_name += artist_split[2]
+                # for artists with links
+                else:
+                    if (artist_name != ''):
+                        artist_name += ', '
+                    artist_name += artist_split[4]
+        except: 
+            print('artist parsing failed')
         
         # print()
         # print('ARTIST NAME' + artist_name)
@@ -132,24 +135,38 @@ for i in range(2021, 2022): #1946-2021
         request_string += '&type=track&market=US&locale=en-US%2Cen%3Bq%3D0.9%2Cja%3Bq%3D0.8%2Czh-CN%3Bq%3D0.7%2Czh%3Bq%3D0.6&offset=0&limit=1'
  
         search_response = requests.get(request_string, headers=headers)
- 
-        if len(search_response.json()["tracks"]["items"]) == 0:
-            warn("Song not found on Spotify: %s" % request_string)
+        
+        #warn("Song not found on Spotify: %s" % request_string)
+        # if len(search_response.json()["tracks"]["items"]) == 0:
+        #     continue
+        if "tracks" not in search_response.json() or "items" not in search_response.json()["tracks"] or len(search_response.json()["tracks"]["items"]) == 0:
             continue
  
         track_name = search_response.json()["tracks"]["items"][0]["name"]
         track_url = search_response.json()["tracks"]["items"][0]["external_urls"]["spotify"]
-        top100_songs[i].append((track_name, track_url))
- 
+        if (track_name, track_url) in top100_songs[i]:
+            continue
+        else: 
+            top100_songs[i].append((track_name, track_url))
+            
 # print(tracks_by_genre)
 # print()
 # print(len(tracks_by_genre))
 # print()
 # print(tracks_by_genre.keys())
 # print()
-print(top100_songs[2021])
+# print(top100_songs)
 # print()
-print(len(top100_songs[2021]))
+# print(len(top100_songs[1966]))
+# print(len(top100_songs[1967]))
+# print(len(top100_songs[1968]))
+# print(len(top100_songs[1969]))
+# print(len(top100_songs[1970]))
+# print(len(top100_songs[1971]))
+# print(len(top100_songs[1972]))
+# print(len(top100_songs[1973]))
+# print(len(top100_songs[1974]))
+# print(len(top100_songs[1975]))
 # print()
 # print(len(top100_songs))
 # print()
@@ -163,7 +180,7 @@ print(len(top100_songs[2021]))
 # with open("tophits.json", "r") as file:
 #     data = json.load(file)
 # # 2. Update json object
-# data[1949] = top100_songs[1949]
+# # data[1949] = top100_songs[1949]
 # # 3. Write json file
 # with open("tophits.json", "w") as file:
 #     json.dump(data, file, indent=4)
