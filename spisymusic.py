@@ -198,7 +198,7 @@ class Spotify_Clustering:
             if len(x_line) > 1:
                 ax.text(x_line[-1], y_line[-1], z_line[-1], list(yearhits.keys())[i], fontdict=font, size=10, zorder=1, color='black')
 
-        animation = FuncAnimation(fig, func=animate, frames=np.arange(0, len(yearhits), 1), interval=1000)
+        animation = FuncAnimation(fig, func=animate, frames=np.arange(0, len(yearhits), 1), interval=500)
         animation.save('./animation.gif', writer='imagemagick', fps=60)
         plt.show()
 
