@@ -29,7 +29,7 @@ sp = spotipy.Spotify(cache_token)
 genre_response = requests.get('https://api.spotify.com/v1/recommendations/available-genre-seeds', headers=headers)
 genres = genre_response.json()["genres"]
 
-removed_genres = ['alt-rock', 'ambient', 'anime', 'black-metal', 'bluegrass', 'bossanova',
+removed_genres = ['alt-rock', 'ambient', 'afrobeat', 'cantopop', 'goth', 'latino', 'rainy-day', 'reggaeton', 'rock-n-roll', 'movies', 'dance', 'guitar', 'samba', 'anime', 'black-metal', 'bluegrass', 'bossanova',
 'brazil', 'breakbeat', 'british', 'chicago-house', 'children', 'comedy', 'dancehall',
 'death-metal', 'deep-house', 'detroit-techno', 'dub', 'electro', 'electronic', 'emo', 
 'forro', 'french', 'funk', 'garage', 'german', 'grindcore', 'groove', 'grunge', 'hard-rock', 
@@ -44,6 +44,8 @@ removed_genres = ['alt-rock', 'ambient', 'anime', 'black-metal', 'bluegrass', 'b
 for genre in removed_genres:
     genres.remove(genre)
 
+print(genres)
+'''
 tracks_by_genre = {}
 for genre in genres:
     search_response1 = requests.get('https://api.spotify.com/v1/search?q=genre%%3A%s&type=track&market=US&limit=50' % genre, headers=headers)
@@ -76,8 +78,9 @@ for genre in genres:
 track_data = json.dumps(tracks_by_genre, indent=4)
 with open("songsbygenre.json", "w") as outfile:
     outfile.write(track_data)   
+'''
 
-
+'''
 top100_songs = {}
 for i in range(2000, 2001): #1946-2021
     top100_songs[i] = []
@@ -127,7 +130,7 @@ for i in range(2000, 2001): #1946-2021
         track_name = search_response.json()["tracks"]["items"][0]["name"]
         track_url = search_response.json()["tracks"]["items"][0]["external_urls"]["spotify"]
         top100_songs[i].append((track_name, track_url))
-
+'''
 # print(tracks_by_genre)
 # print()
 # print(len(tracks_by_genre))

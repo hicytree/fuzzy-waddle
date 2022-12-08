@@ -12,7 +12,9 @@ from sklearn.cluster import KMeans
 import statistics
 import warnings
 import random
- 
+from matplotlib.animation import FuncAnimation
+import weakref
+
 # accesses the Spotify web api
 _CLIENT_ID = "cada1a6f03b84727b0e5c59c973bd5a1"
 _CLIENT_SECRET = "25d8778fe7ea435fb964260e80bf6214"
@@ -43,7 +45,7 @@ for year in yearhits.keys():
     year_names.append(year)
 f2.close()
 
-# creates clusters with all the data and algorithms that come with it
+#creates clusters with all the data and algorithms that come with it
 class Spotify_Clustering:
  
     # sets up global variables with class is instantiated
@@ -61,7 +63,7 @@ class Spotify_Clustering:
             audio_features = song[list(song.keys())[0]][0]
             if audio_features == None:
                 continue
-            print(cur_num, list(song.keys())[0])
+            print(cur_num, list(song.keys())[0].split('::')[0])
             cur_num += 1
 
             song_features.append(audio_features)
@@ -131,10 +133,9 @@ class Spotify_Clustering:
  
     # takes in the number of clusters and graphs the geometrical medians on the 3-D figure, coloring them based on the cluster they belong to
     def graph_clusters(self, num_cluster):
-        fig = plt.figure("Genre Trends", figsize=(10, 7))
+        fig = plt.figure("Genre Trends", figsize=(15, 15))
  
         ax = fig.add_subplot(111, projection='3d')
-        ax.set_title("Trends by Genre")
         #ax.set_xlabel('Principle Component 1')
         #ax.set_ylabel('Principle Component 2')
         #ax.set_zlabel('Principle Component 3')
@@ -149,31 +150,58 @@ class Spotify_Clustering:
                 'weight': 'normal',
                 'size': 10,
                 }
-
-        for coor in self.center_points:
+        
+        for coor in self.center_points[:len(genres)]:
             x_geomeds.append(coor[0])
             y_geomeds.append(coor[1])
             z_geomeds.append(coor[2])
-            ax.text(coor[0], coor[1], coor[2], (list(genres.keys()) + list(yearhits.keys()))[i], fontdict=font, size=5, zorder=1, color='black')
+            ax.text(coor[0], coor[1], coor[2], list(genres.keys())[i], fontdict=font, size=10, zorder=1, color='gray')
             i += 1
  
         y_predicted = self.km[num_cluster - 1].fit_predict(self.df_geomeds)
         self.df_geomeds['cluster'] = y_predicted
-        print(len(y_predicted))
-        print(len(list(genres.keys())))
-        print(len(list(yearhits.keys())))
-        for i in range(len(genres) + len(yearhits)):
+        
+        for i in range(len(genres)):
             if i < len(genres):
                 self.cluster_name.update({list(genres.keys())[i]: y_predicted[i]})
-            else:
-                self.cluster_name.update({list(yearhits.keys())[i - len(genres)]: y_predicted[i]})
- 
+        
         for i in range(num_cluster):
             rand_color = '#%02x%02x%02x' % (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
             cluster = self.df_geomeds[self.df_geomeds.cluster == i]
  
             ax.scatter3D(cluster['x_coor'], cluster['y_coor'], cluster['z_coor'], color=rand_color, alpha=1.0)
-    
+        
+        x_line = []
+        y_line = []
+        z_line = []
+        self.firsttime = True
+
+        def animate(i):
+            x_line.append(self.center_points[len(genres) + i][0])
+            y_line.append(self.center_points[len(genres) + i][1])
+            z_line.append(self.center_points[len(genres) + i][2])  
+            
+            if(len(x_line) == 8):
+                ax.lines.clear()
+                ax.texts.pop(len(genres))
+                x_line.pop(0)
+                y_line.pop(0)
+                z_line.pop(0)
+                if self.firsttime:
+                    self.firsttime = False
+                    x_line.pop(0)
+                    y_line.pop(0)
+                    z_line.pop(0)
+                     
+            ax.plot(x_line, y_line, z_line,color="gray")
+            
+            if len(x_line) > 1:
+                ax.text(x_line[-1], y_line[-1], z_line[-1], list(yearhits.keys())[i], fontdict=font, size=10, zorder=1, color='black')
+
+        animation = FuncAnimation(fig, func=animate, frames=np.arange(0, len(yearhits), 1), interval=1000)
+        animation.save('./animation.gif', writer='imagemagick', fps=60)
+        plt.show()
+
     # finds the optimal number of clusters for the data by calculating the elbow of the graph of clusters-variance
     def find_num_clusters(self):
         # sse = []
@@ -228,7 +256,7 @@ class Spotify_Runner:
                     self.center_points.append([x, y, z])
             
             self.spot_list[i].center_points = self.center_points
-            self.spot_list[i].df_geomeds = df(self.center_points, columns=['x_coor', 'y_coor', 'z_coor'])
+            self.spot_list[i].df_geomeds = df(self.center_points[:len(genres)], columns=['x_coor', 'y_coor', 'z_coor'])
 
             if i == 0:
                 list_num_cluster = []
@@ -243,7 +271,7 @@ class Spotify_Runner:
             # if min(self.inertias) == self.spot_list[i].km[self.best_num_cluster - 1].inertia_:
             #     self.min_inertia_spot = i
 
-            print("iteration %s" % i)
+           # print("iteration %s" % i)
         
         #genre_graphing = Spotify_Clustering()
         #self.first_pca = genre_graphing.pca_calculation(genres[genre])
@@ -265,5 +293,3 @@ class Spotify_Runner:
 runner = Spotify_Runner(1)
 runner.spot_creation()
 print("\n\n\n")
- 
-plt.show()
