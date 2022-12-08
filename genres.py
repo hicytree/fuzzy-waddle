@@ -20,7 +20,7 @@ access_token = auth_response_data['access_token']
 headers = {
     'Authorization': 'Bearer {token}'.format(token=access_token)
 }
- 
+''' 
 genre_response = requests.get('https://api.spotify.com/v1/recommendations/available-genre-seeds', headers=headers)
 genres = genre_response.json()["genres"]
  
@@ -45,16 +45,17 @@ for genre in genres[:3]:
         track_url = search_response2.json()["tracks"]["items"][i]["external_urls"]["spotify"]
  
         tracks_by_genre[genre].append((track_name, track_url))
- 
+''' 
 # parse top 100 hits from Wikipedia Billboard Year End Top Hits
 top100_songs = {}
 count = 1
-for i in range(2021, 2022): #1946-2021
+for i in range(1946, 2022): #1946-2021
     top100_songs[i] = []
     #grep -A 1 '<td>\"<a href=\"/wiki/'
     #wget -qO- 'https://en.wikipedia.org/wiki/Billboard_Year-End_Hot_100_singles_of_1946' | grep -A 1 '<tr>'
     stream = os.popen("wget -qO- 'https://en.wikipedia.org/wiki/Billboard_Year-End_Hot_100_singles_of_%s' | grep -A 1 '<td>'" % i)
     #stream = os.popen("wget -qO- 'https://en.wikipedia.org/wiki/Billboard_year-end_top_30_singles_of_%s' | grep -A 1 '<td>'" % i)
+    attempts = 0
     while True:
         first_line = stream.readline()
         if "<td>\"" in first_line:
@@ -64,7 +65,7 @@ for i in range(2021, 2022): #1946-2021
         # print(str(count) + 'song name' + song_name_line)
         if not song_name_line:
             break
- 
+        attempts += 1
         artist_name_line = stream.readline()
         stream.readline()
         # print('artist name' + artist_name_line)
@@ -84,8 +85,8 @@ for i in range(2021, 2022): #1946-2021
  
         artist_name_line = artist_name_line.replace('<', '>')
         artists = re.split(' featuring | and | or | with ', artist_name_line)
-        print('ARTISTS ARR')
-        print(artists)
+        #print('ARTISTS ARR')
+        #print(artists)
         artist_name = ''
         for artist in artists:
             artist_split = artist.split('>')
@@ -140,16 +141,18 @@ for i in range(2021, 2022): #1946-2021
         track_name = search_response.json()["tracks"]["items"][0]["name"]
         track_url = search_response.json()["tracks"]["items"][0]["external_urls"]["spotify"]
         top100_songs[i].append((track_name, track_url))
- 
+        print(track_name)
+    print(len(top100_songs[i]), attempts)
+    print()
 # print(tracks_by_genre)
 # print()
 # print(len(tracks_by_genre))
 # print()
 # print(tracks_by_genre.keys())
 # print()
-print(top100_songs[2021])
+#print(top100_songs[2021])
 # print()
-print(len(top100_songs[2021]))
+#print(len(top100_songs[2021]))
 # print()
 # print(len(top100_songs))
 # print()

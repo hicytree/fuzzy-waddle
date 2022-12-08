@@ -33,6 +33,16 @@ for genre in genres.keys():
     genre_names.append(genre)
 f.close()
 
+year_songs = []
+year_names = []
+
+f2 = open('testhits.json')
+yearhits = json.load(f2)
+for year in yearhits.keys():
+    year_songs.append(yearhits[year])
+    year_names.append(year)
+f2.close()
+
 # creates clusters with all the data and algorithms that come with it
 class Spotify_Clustering:
  
@@ -43,20 +53,22 @@ class Spotify_Clustering:
         self.cluster_name = {}
  
     # calculates the pca values of each song in the playlist and returns the list of pca values
-    def pca_calculation(self, genre):
+    def pca_calculation(self, songs):
         cur_num = 1
         song_features = []
 
-        for song in genre:
+        for song in songs:
             audio_features = song[list(song.keys())[0]][0]
+            if audio_features == None:
+                continue
             print(cur_num, list(song.keys())[0])
             cur_num += 1
 
             song_features.append(audio_features)
         print()
- 
+
         df = pd.DataFrame.from_dict(song_features)
- 
+
         scaler = StandardScaler()
         scaler.fit(df)
         scaled_data = scaler.transform(df)
@@ -119,13 +131,13 @@ class Spotify_Clustering:
  
     # takes in the number of clusters and graphs the geometrical medians on the 3-D figure, coloring them based on the cluster they belong to
     def graph_clusters(self, num_cluster):
-        fig = plt.figure("Genre Trends")
+        fig = plt.figure("Genre Trends", figsize=(10, 7))
  
         ax = fig.add_subplot(111, projection='3d')
         ax.set_title("Trends by Genre")
-        ax.set_xlabel('Principle Component 1')
-        ax.set_ylabel('Principle Component 2')
-        ax.set_zlabel('Principle Component 3')
+        #ax.set_xlabel('Principle Component 1')
+        #ax.set_ylabel('Principle Component 2')
+        #ax.set_zlabel('Principle Component 3')
  
         x_geomeds = []
         y_geomeds = []
@@ -137,79 +149,51 @@ class Spotify_Clustering:
                 'weight': 'normal',
                 'size': 10,
                 }
- 
+
         for coor in self.center_points:
             x_geomeds.append(coor[0])
             y_geomeds.append(coor[1])
             z_geomeds.append(coor[2])
-            ax.text(coor[0], coor[1], coor[2], list(genres.keys())[i], fontdict=font, size=5, zorder=1, color='black')
+            ax.text(coor[0], coor[1], coor[2], (list(genres.keys()) + list(yearhits.keys()))[i], fontdict=font, size=5, zorder=1, color='black')
             i += 1
  
         y_predicted = self.km[num_cluster - 1].fit_predict(self.df_geomeds)
         self.df_geomeds['cluster'] = y_predicted
- 
-        for i in range(len(genres)):
-            self.cluster_name.update({list(genres.keys())[i]: y_predicted[i]})
+        print(len(y_predicted))
+        print(len(list(genres.keys())))
+        print(len(list(yearhits.keys())))
+        for i in range(len(genres) + len(yearhits)):
+            if i < len(genres):
+                self.cluster_name.update({list(genres.keys())[i]: y_predicted[i]})
+            else:
+                self.cluster_name.update({list(yearhits.keys())[i - len(genres)]: y_predicted[i]})
  
         for i in range(num_cluster):
             rand_color = '#%02x%02x%02x' % (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
             cluster = self.df_geomeds[self.df_geomeds.cluster == i]
  
             ax.scatter3D(cluster['x_coor'], cluster['y_coor'], cluster['z_coor'], color=rand_color, alpha=1.0)
-    '''
-    # graph thes geometric medians and the name of the point on a figure as black dots
-    def graph_geo_med(self):
-        fig = plt.figure()
- 
-        ax = fig.add_subplot(111, projection='3d')
-        ax.set_title("Music Preference of All SPIS Members")
-        ax.set_xlabel('Principle Component 1')
-        ax.set_ylabel('Principle Component 2')
-        ax.set_zlabel('Principle Component 3')
- 
-        i = 0
-        font = {'family': 'serif',
-                'color': 'darkred',
-                'weight': 'normal',
-                'size': 10,
-                }
-        for coor in self.center_points:
-            ax.text(coor[0], coor[1], coor[2], playlist_list_names[i], fontdict=font, size=5, zorder=1, color='black')
-            ax.scatter3D(coor[0], coor[1], coor[2], color='black', alpha=1.0)
-            i += 1
     
-    # graphs the pca of each song in one playlist as red dots and the geometric median of the whole playlist as a black dot
-    def graph_pca(self, pca):
-        fig = plt.figure("Genre Trends")
- 
-        ax = fig.add_subplot(111, projection='3d')
-        ax.set_title("Groupings by Genre")
-        ax.set_xlabel('Principle Component 1')
-        ax.set_ylabel('Principle Component 2')
-        ax.set_zlabel('Principle Component 3')
- 
-        for coor in pca:
-            ax.scatter3D(coor[0], coor[1], coor[2], color='red', alpha=1.0)
-    '''
     # finds the optimal number of clusters for the data by calculating the elbow of the graph of clusters-variance
     def find_num_clusters(self):
-        sse = []
-        k_rng = range(1, len(genres))
+        # sse = []
+        # k_rng = range(1, len(genres) + len(yearhits))
  
-        for i in range(len(k_rng)):
-            self.km.append(KMeans(n_clusters=k_rng[i]))
-            self.km[i].fit(self.df_geomeds[['x_coor', 'y_coor', 'z_coor']])
-            sse.append(self.km[i].inertia_)
+        # for i in range(len(k_rng)):
+        #     self.km.append(KMeans(n_clusters=k_rng[i]))
+        #     self.km[i].fit(self.df_geomeds[['x_coor', 'y_coor', 'z_coor']])
+        #     sse.append(self.km[i].inertia_)
  
-        areas = []
-        for j in range(len(k_rng)):
-            T = (1 / 2) * abs(
-                (k_rng[0] - k_rng[j]) * (sse[len(sse) - 1] - sse[0]) - (k_rng[0] - k_rng[len(k_rng) - 1]) * (
-                            sse[j] - sse[0]))
-            areas.append(T)
+        # areas = []
+        # for j in range(len(k_rng)):
+        #     T = (1 / 2) * abs(
+        #         (k_rng[0] - k_rng[j]) * (sse[len(sse) - 1] - sse[0]) - (k_rng[0] - k_rng[len(k_rng) - 1]) * (
+        #                     sse[j] - sse[0]))
+        #     areas.append(T)
  
-        return areas.index(max(areas)) + 1
- 
+        # return areas.index(max(areas)) + 1
+        self.km.append(KMeans(n_clusters=8))
+        return 8
  
 # this class sets up to find the best set of clusters by creating a variable number of clusters and graphing the cluster
 class Spotify_Runner:
@@ -238,6 +222,10 @@ class Spotify_Runner:
                         self.first_pca = pca
                     x, y, z = self.spot_list[i].find_geo_med(pca)
                     self.center_points.append([x, y, z])
+                for year in yearhits:
+                    pca = self.spot_list[i].pca_calculation(yearhits[year])
+                    x, y, z = self.spot_list[i].find_geo_med(pca)
+                    self.center_points.append([x, y, z])
             
             self.spot_list[i].center_points = self.center_points
             self.spot_list[i].df_geomeds = df(self.center_points, columns=['x_coor', 'y_coor', 'z_coor'])
@@ -251,9 +239,9 @@ class Spotify_Runner:
 
             self.spot_list[i].find_num_clusters()
  
-            self.inertias.append(self.spot_list[i].km[self.best_num_cluster - 1].inertia_)
-            if min(self.inertias) == self.spot_list[i].km[self.best_num_cluster - 1].inertia_:
-                self.min_inertia_spot = i
+            # self.inertias.append(self.spot_list[i].km[self.best_num_cluster - 1].inertia_)
+            # if min(self.inertias) == self.spot_list[i].km[self.best_num_cluster - 1].inertia_:
+            #     self.min_inertia_spot = i
 
             print("iteration %s" % i)
         
@@ -262,7 +250,8 @@ class Spotify_Runner:
         #genre_graphing.graph_pca(self.first_pca)
         # self.spot_list[self.min_inertia_spot].graph_geo_med()
         # self.spot_list[self.min_inertia_spot].graph_roles()
-        self.spot_list[self.min_inertia_spot].graph_clusters(self.best_num_cluster)
+        # self.spot_list[self.min_inertia_spot].graph_clusters(self.best_num_cluster)
+        self.spot_list[0].graph_clusters(self.best_num_cluster)
         
         print("\n\n\n")
         for i in range(self.best_num_cluster):
@@ -273,7 +262,7 @@ class Spotify_Runner:
                 print(str(list_names[j]), end=', ')
             print(list_names[len(list_names) - 1])
         
-runner = Spotify_Runner(10)
+runner = Spotify_Runner(1)
 runner.spot_creation()
 print("\n\n\n")
  
